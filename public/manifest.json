@@ -1,0 +1,18 @@
+{
+  "name": "SYNAPSE",
+  "short_name": "SYNAPSE",
+  "description": "Asymmetric cognitive exchange for progressive individuals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
