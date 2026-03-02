@@ -39,6 +39,8 @@ export default function SynapseDarkPool() {
   const [intelText, setIntelText] = useState<Record<number, string>>({});
   const [intelSaved, setIntelSaved] = useState<Record<number, boolean>>({});
   const [intelAnalysis, setIntelAnalysis] = useState<Record<number, string>>({});
+  const [savingIntel, setSavingIntel] = useState<Record<number, boolean>>({});
+  const [intelError, setIntelError] = useState<Record<number, string>>({});
 
   // 已移除 poolStats 聚合逻辑 — UI 简化为情报提取为主
 
@@ -81,6 +83,8 @@ export default function SynapseDarkPool() {
 
   // 保存分析结果到智库档案
   const saveIntelToArchive = async (headline: string, analysis: string, idx: number) => {
+    setSavingIntel(s => ({ ...s, [idx]: true }));
+    setIntelError(s => ({ ...s, [idx]: '' }));
     try {
       const res = await fetch('/api/save-intel', {
         method: 'POST',
@@ -91,14 +95,25 @@ export default function SynapseDarkPool() {
           analysis
         })
       });
+      
       if (res.ok) {
         setIntelSaved(s => ({ ...s, [idx]: true }));
+        setIntelError(s => ({ ...s, [idx]: '' }));
         const time = new Date().toLocaleTimeString();
         const line = `${time} > NODE ${nodeId || 'ANON'} ARCHIVED INTEL FOR: "${headline}"`;
         setActivityLogs(prev => [line, ...prev].slice(0, 10));
+      } else {
+        const errData = await res.json();
+        const errMsg = errData.error || '存档失败，请重试';
+        setIntelError(s => ({ ...s, [idx]: errMsg }));
+        console.error('Save failed:', errMsg);
       }
     } catch (e) {
+      const errMsg = e instanceof Error ? e.message : '网络链接异常';
+      setIntelError(s => ({ ...s, [idx]: errMsg }));
       console.error('Archive failed', e);
+    } finally {
+      setSavingIntel(s => ({ ...s, [idx]: false }));
     }
   };
 
@@ -211,19 +226,38 @@ export default function SynapseDarkPool() {
                       <div className="mb-2 text-sm bg-[#1A1A1A] text-[#8AB4F8] font-sans p-4 rounded whitespace-pre-wrap border-l-2 border-[#8AB4F8]">{intelText[index]}</div>
                     )}
                     <div className="flex flex-col w-full md:w-auto gap-2">
-                      <button onClick={() => fetchDeepIntel(report.headline, index)} disabled={!!intelLoading[index]} className="mb-2 px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444]">
+                      <button onClick={() => fetchDeepIntel(report.headline, index)} disabled={!!intelLoading[index]} className="mb-2 px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444] disabled:opacity-50">
                         {intelLoading[index] ? '正在提取...' : '请求跨域融合分析'}
                       </button>
                       {intelAnalysis[index] && (
-                        <button onClick={() => saveIntelToArchive(report.headline, intelAnalysis[index], index)} className="px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444] flex items-center gap-2 justify-center">
-                          {intelSaved[index] ? (
-                            <>
-                              <span>✓ 已永久存档</span>
-                            </>
-                          ) : (
-                            <span>存入智库档案</span>
+                        <>
+                          <button 
+                            onClick={() => saveIntelToArchive(report.headline, intelAnalysis[index], index)} 
+                            disabled={intelSaved[index] || savingIntel[index]}
+                            className={`px-4 py-2 text-sm tracking-widest uppercase font-semibold border flex items-center gap-2 justify-center transition-all ${
+                              intelSaved[index] 
+                                ? 'bg-[#2A3A2A] text-[#90EE90] border-[#4A6A4A] opacity-50' 
+                                : 'bg-[#333333] text-[#EDEDED] border-[#444] hover:bg-[#444] disabled:opacity-50'
+                            }`}
+                          >
+                            {savingIntel[index] ? (
+                              <>
+                                <span className="inline-block w-4 h-4 border-2 border-[#EDEDED] border-t-transparent rounded-full animate-spin"></span>
+                                <span>正在刻录...</span>
+                              </>
+                            ) : intelSaved[index] ? (
+                              <>
+                                <span className="text-[#90EE90]">✓</span>
+                                <span>已永久存档</span>
+                              </>
+                            ) : (
+                              <span>存入智库档案</span>
+                            )}
+                          </button>
+                          {intelError[index] && (
+                            <div className="text-[10px] text-[#FF6B6B]">⚠ {intelError[index]}</div>
                           )}
-                        </button>
+                        </>
                       )}
                     </div>
                   </div>
