@@ -37,6 +37,8 @@ export default function SynapseDarkPool() {
   // DEEP_INTEL 状态（按索引）
   const [intelLoading, setIntelLoading] = useState<Record<number, boolean>>({});
   const [intelText, setIntelText] = useState<Record<number, string>>({});
+  const [intelSaved, setIntelSaved] = useState<Record<number, boolean>>({});
+  const [intelAnalysis, setIntelAnalysis] = useState<Record<number, string>>({});
 
   // 已移除 poolStats 聚合逻辑 — UI 简化为情报提取为主
 
@@ -54,6 +56,7 @@ export default function SynapseDarkPool() {
 
       // 打字机效果
       setIntelText(s => ({ ...s, [idx]: '' }));
+      setIntelAnalysis(s => ({ ...s, [idx]: formattedIntel }));
       let i = 0;
       const speed = 24;
       const timer = setInterval(() => {
@@ -73,6 +76,29 @@ export default function SynapseDarkPool() {
       setIntelText(s => ({ ...s, [idx]: '机密提取失败' }));
     } finally {
       setIntelLoading(s => ({ ...s, [idx]: false }));
+    }
+  };
+
+  // 保存分析结果到智库档案
+  const saveIntelToArchive = async (headline: string, analysis: string, idx: number) => {
+    try {
+      const res = await fetch('/api/save-intel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: headline,
+          source_url: '',
+          analysis
+        })
+      });
+      if (res.ok) {
+        setIntelSaved(s => ({ ...s, [idx]: true }));
+        const time = new Date().toLocaleTimeString();
+        const line = `${time} > NODE ${nodeId || 'ANON'} ARCHIVED INTEL FOR: "${headline}"`;
+        setActivityLogs(prev => [line, ...prev].slice(0, 10));
+      }
+    } catch (e) {
+      console.error('Archive failed', e);
     }
   };
 
@@ -184,10 +210,21 @@ export default function SynapseDarkPool() {
                     {intelText[index] && (
                       <div className="mb-2 text-sm bg-[#1A1A1A] text-[#8AB4F8] font-sans p-4 rounded whitespace-pre-wrap border-l-2 border-[#8AB4F8]">{intelText[index]}</div>
                     )}
-                    <div className="flex flex-col w-full md:w-auto">
+                    <div className="flex flex-col w-full md:w-auto gap-2">
                       <button onClick={() => fetchDeepIntel(report.headline, index)} disabled={!!intelLoading[index]} className="mb-2 px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444]">
                         {intelLoading[index] ? '正在提取...' : '请求跨域融合分析'}
                       </button>
+                      {intelAnalysis[index] && (
+                        <button onClick={() => saveIntelToArchive(report.headline, intelAnalysis[index], index)} className="px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444] flex items-center gap-2 justify-center">
+                          {intelSaved[index] ? (
+                            <>
+                              <span>✓ 已永久存档</span>
+                            </>
+                          ) : (
+                            <span>存入智库档案</span>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
