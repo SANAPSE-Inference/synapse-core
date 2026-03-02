@@ -1,54 +1,58 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
+
+// 强制每小时重新拉取一次，上游缓存控制
+export const revalidate = 3600;
 
 const parser = new Parser();
 
-// 选择 3 个稳定且无需 API key 的公共 RSS 源
+// 五个核心垂直领域的 RSS 源
 const TARGET_FEEDS: Array<{ source: string; url: string }> = [
-  { source: 'Reuters', url: 'http://feeds.reuters.com/reuters/topNews' },
-  { source: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
-  { source: 'HackerNews', url: 'https://news.ycombinator.com/rss' }
+  { source: 'HackerNews', url: 'https://hnrss.org/frontpage' },
+  { source: 'FierceBiotech', url: 'https://www.fiercebiotech.com/rss/xml' },
+  { source: 'ReutersBusiness', url: 'http://feeds.reuters.com/reuters/businessNews' },
+  { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' },
+  { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
 ];
 
 export async function GET() {
   try {
-    // 并发抓取所有 RSS 源
+    // 并发拉取并反脆弱处理
     const results = await Promise.allSettled(
       TARGET_FEEDS.map(async (feed) => {
         const parsed = await parser.parseURL(feed.url);
-        return parsed.items?.map(item => ({
+        const items = parsed.items?.slice(0, 5) || [];
+        return items.map((item) => ({
           headline: item.title || '',
           source: feed.source,
           url: item.link || item.guid || '',
           pubDate: item.isoDate || item.pubDate || ''
-        })) || [];
+        }));
       })
     );
 
-    // 合并并扁平化
-    const merged: Array<any> = [];
+    const merged: Array<{ headline: string; source: string; url: string; pubDate: string }> = [];
     for (const r of results) {
       if (r.status === 'fulfilled') merged.push(...r.value);
     }
 
-    if (merged.length === 0) return NextResponse.json({ data: [] });
-
-    // 按时间倒序排列，取最新 20 条
+    // 排序最新在前
     merged.sort((a, b) => {
       const da = Date.parse(a.pubDate || '') || 0;
       const db = Date.parse(b.pubDate || '') || 0;
       return db - da;
     });
 
-    const sliced = merged.slice(0, 20).map(item => ({
-      headline: item.headline,
-      source: item.source,
-      url: item.url
+    const output = merged.map(({ headline, source, url }) => ({
+      headline,
+      source,
+      url
     }));
 
-    return NextResponse.json({ data: sliced });
-  } catch (err: any) {
-    console.error('RSS pipeline error', err);
-    return NextResponse.json({ error: 'RSS fetch failed' }, { status: 500 });
+    return NextResponse.json({ data: output });
+  } catch (err) {
+    console.error('unhandled RSS pipeline error', err);
+    // 不抛 500，只返回空数组保证前端可用
+    return NextResponse.json({ data: [] });
   }
 }
