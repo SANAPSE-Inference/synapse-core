@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
@@ -35,28 +36,19 @@ export default function SynapseDarkPool() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(false);
-  
 
   // 活动日志与终端
   const [activityLogs, setActivityLogs] = useState<string[]>([]);
   const logContainerRef = useRef<HTMLDivElement | null>(null);
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  // 私钥/访问控制 (已精简为匿名节点，无需用户输入 Access Key)
 
-
-
-  // 已移除 poolStats 聚合逻辑 — UI 简化为情报提取为主
-
-
-
-  // 页面加载：初始化节点（localStorage 优先，强制 prompt）并订阅实时
+  // 页面加载：初始化节点并订阅实时数据库
   useEffect(() => {
     let stakesChannel: any = null;
     let providedNode = '';
 
     const setup = async () => {
-      // 优先 localStorage，否则生成匿名持久化 ID（零感知登录）
       const stored = localStorage.getItem('synapse_node_id');
       if (stored) {
         providedNode = stored;
@@ -66,7 +58,6 @@ export default function SynapseDarkPool() {
       }
       setNodeId(providedNode);
 
-      // 订阅 cognitive_stakes 插入，仅用于活动流展示（语义化为情报提取日志）
       try {
         stakesChannel = supabase
           .channel('schema-db-changes')
@@ -92,18 +83,20 @@ export default function SynapseDarkPool() {
     };
   }, []);
 
-  // 已移除 handleStake（对赌/审计）逻辑 — 平台核心为情报提取与融合分析
-
-  // 页面其它初始化：拉取 feed
+  // 拉取 feed 数据
   useEffect(() => {
     const fetchReports = async () => {
       try {
         const response = await fetch(`/api/feed?category=${category}`);
         const json = await response.json();
+        // 这里的 json 结构需与后端 API 匹配，假设返回格式为 { data: [...] }
         if (json.data) setReports(json.data);
       } catch (e) {
         console.error('Engine Offline');
-      } finally { setIsLoading(false); setCategoryLoading(false); }
+      } finally { 
+        setIsLoading(false); 
+        setCategoryLoading(false); 
+      }
     };
     fetchReports();
   }, [category]);
@@ -116,7 +109,7 @@ export default function SynapseDarkPool() {
     }
   };
 
-  // log auto-scroll
+  // 自动滚动日志
   useEffect(() => { if (logContainerRef.current) logContainerRef.current.scrollTop = 0; }, [activityLogs]);
   useEffect(() => { if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight; }, [terminalLines]);
 
@@ -163,37 +156,53 @@ export default function SynapseDarkPool() {
             <p className="text-xs text-[#A0A0A0] uppercase animate-pulse">{categoryLoading ? '正在接通该域...' : '加载中...'}</p>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-12 mb-40">
             {reports.map((report, index) => (
               <div key={report.url || report.headline || index} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
                 <div className="mb-6">
-                  <a href={report.url || '#'} target="_blank" rel="noreferrer" className="inline-block px-2 py-1 text-[#A0A0A0] text-[10px] uppercase tracking-widest mb-3">数据来源：{report.source}</a>
-                  <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">{report.headline}</h2>
+                  <span className="inline-block text-[#A0A0A0] text-[10px] uppercase tracking-widest mb-3">
+                    数据来源：{report.source}
+                  </span>
+                  <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">
+                    {report.headline}
+                  </h2>
                 </div>
 
-                <div className="border-t border-[#222] pt-6">
-                  <Link
-                    href={`/analyze?title=${encodeURIComponent(report.headline)}&url=${encodeURIComponent(report.url||'')}&source=${encodeURIComponent(report.source)}`}
-                    className="text-sm tracking-widest uppercase text-[#888888] hover:text-[#EDEDED]"
+                <div className="border-t border-[#222] pt-6 flex gap-6">
+                  <Link 
+                    href={`/analyze?title=${encodeURIComponent(report.headline)}&url=${encodeURIComponent(report.url || '')}&source=${encodeURIComponent(category)}`}
+                    target="_blank" 
+                    className="text-sm tracking-widest uppercase text-[#888888] hover:text-[#EDEDED] transition-colors"
                   >
-                    请求深潜分析 →
+                    请求深度分析
                   </Link>
+                  {report.url && (
+                    <a 
+                      href={report.url} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-sm tracking-widest uppercase text-[#444] hover:text-[#666] transition-colors"
+                    >
+                      原始链
+                    </a>
+                  )}
                 </div>
-
-                {/* poolStats 已移除 — UI 简化，保留标题与情报文本 */}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* 全局博弈日志 (固定在底部，可滚动显示最新条目) */}
-      <div ref={logContainerRef} className="fixed bottom-0 left-0 w-full max-h-40 overflow-y-auto bg-[#121212] text-[#A0A0A0] text-xs font-sans p-2 border-t border-[#333333]">
-        {activityLogs.map((log, i) => (<div key={i} className="log-entry py-1">{log}</div>))}
+      {/* 全局博弈日志 (固定在底部左侧) */}
+      <div ref={logContainerRef} className="fixed bottom-0 left-0 w-full md:w-1/2 max-h-40 overflow-y-auto bg-[#121212] bg-opacity-95 text-[#A0A0A0] text-xs font-sans p-4 border-t border-[#333333] z-50">
+        <div className="text-[10px] text-[#444] mb-2 tracking-widest uppercase">Global Activity Log // 实时情报流</div>
+        {activityLogs.map((log, i) => (<div key={i} className="log-entry py-1 border-b border-[#1a1a1a] last:border-0">{log}</div>))}
       </div>
-      {/* ActivityTerminal: 黑客帝国风格实时流 */}
-      <div ref={terminalRef} className="fixed bottom-0 right-0 w-80 h-40 overflow-y-auto bg-[#121212] bg-opacity-90 text-[#8AB4F8] text-xs font-sans p-2 border-t border-l border-[#333333]">
-        {terminalLines.map((l, i) => (<div key={i} className="terminal-line">{l}</div>))}
+
+      {/* ActivityTerminal: 黑客帝国风格实时流 (固定在底部右侧) */}
+      <div ref={terminalRef} className="fixed bottom-0 right-0 hidden md:block w-1/2 h-40 overflow-y-auto bg-[#121212] bg-opacity-95 text-[#8AB4F8] text-[10px] font-mono p-4 border-t border-l border-[#333333] z-50">
+        <div className="text-[#444] mb-2 tracking-widest uppercase">System Terminal // 节点状态</div>
+        {terminalLines.map((l, i) => (<div key={i} className="terminal-line mb-1">{l}</div>))}
       </div>
     </div>
   );
