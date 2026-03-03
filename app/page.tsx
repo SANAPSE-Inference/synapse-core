@@ -17,14 +17,26 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const CATEGORIES = [
+  { id: 'all', label: 'All 全部' },
+  { id: 'ai', label: 'AI 与算力' },
+  { id: 'finance', label: '宏观金融' },
+  { id: 'geopolitics', label: '地缘博弈' },
+  { id: 'china', label: '大中华区' },
+  { id: 'industry', label: '实体工业' },
+  { id: 'biotech', label: '合成生物' },
+  { id: 'web3', label: 'Web3' }
+];
+
 export default function SynapseDarkPool() {
   // 节点与账本状态
   const [nodeId, setNodeId] = useState<string>('UNKNOWN_NODE');
 
   // 页面数据与 UI 状态
-  
+  const [category, setCategory] = useState<string>('all');
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   
 
   // 活动日志与终端
@@ -165,15 +177,23 @@ export default function SynapseDarkPool() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const response = await fetch('/api/feed');
+        const response = await fetch(`/api/feed?category=${category}`);
         const json = await response.json();
         if (json.data) setReports(json.data);
       } catch (e) {
         console.error('Engine Offline');
-      } finally { setIsLoading(false); }
+      } finally { setIsLoading(false); setCategoryLoading(false); }
     };
     fetchReports();
-  }, []);
+  }, [category]);
+
+  // 处理分类切换
+  const handleCategoryChange = (newCategory: string) => {
+    if (newCategory !== category) {
+      setCategory(newCategory);
+      setCategoryLoading(true);
+    }
+  };
 
   // log auto-scroll
   useEffect(() => { if (logContainerRef.current) logContainerRef.current.scrollTop = 0; }, [activityLogs]);
@@ -194,10 +214,32 @@ export default function SynapseDarkPool() {
           <p className="text-sm text-[#A0A0A0] mt-2">泛行业信息聚合与 AI 融合分析平台</p>
         </header>
 
-        {isLoading ? (
+        {/* 七大分类导航栏 */}
+        <nav className="mb-12 pb-6 border-b border-[#222222]">
+          <div className="flex flex-wrap gap-6 md:gap-8">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryChange(cat.id)}
+                className={`text-sm tracking-widest uppercase transition-all ${
+                  category === cat.id
+                    ? 'text-[#EDEDED] font-bold'
+                    : 'text-[#666666] hover:text-[#888888]'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          {categoryLoading && (
+            <div className="mt-4 text-xs text-[#888888] animate-pulse">正在接通该域数据管线...</div>
+          )}
+        </nav>
+
+        {isLoading || categoryLoading ? (
           <div className="flex flex-col items-center justify-center py-32 space-y-6 bg-[#121212]">
             <div className="w-12 h-12 border-4 border-[#444] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs text-[#A0A0A0] uppercase animate-pulse">加载中...</p>
+            <p className="text-xs text-[#A0A0A0] uppercase animate-pulse">{categoryLoading ? '正在接通该域...' : '加载中...'}</p>
           </div>
         ) : (
           <div className="space-y-12">
