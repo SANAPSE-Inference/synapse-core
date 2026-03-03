@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 export default function DeepAnalyzeView() {
@@ -38,7 +39,7 @@ export default function DeepAnalyzeView() {
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#EDEDED] font-sans p-6 md:p-12 leading-relaxed">
-      <button onClick={() => window.history.back()} className="text-sm text-[#888] mb-4">← 返回全局监控</button>
+      <Link href="/" className="text-sm text-[#888] mb-4 inline-block">← 返回全局监控</Link>
       <h1 className="text-xl font-semibold mb-2 break-words">{title}</h1>
       {loading && <p className="text-[#888]">演算引擎运转中...</p>}
       {error && <p className="text-[#FF6B6B]">{error}</p>}

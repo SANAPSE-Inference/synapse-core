@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
 interface Report {
@@ -163,20 +164,20 @@ export default function SynapseDarkPool() {
           </div>
         ) : (
           <div className="space-y-12">
-            {reports.map((report, index) => (
-              <div key={index} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
+            {reports.map((report) => (
+              <div key={report.url || report.headline} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
                 <div className="mb-6">
                   <a href={report.url || '#'} target="_blank" rel="noreferrer" className="inline-block px-2 py-1 text-[#A0A0A0] text-[10px] uppercase tracking-widest mb-3">数据来源：{report.source}</a>
                   <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">{report.headline}</h2>
                 </div>
 
                 <div className="border-t border-[#222] pt-6">
-                  <a
+                  <Link
                     href={`/analyze?title=${encodeURIComponent(report.headline)}&url=${encodeURIComponent(report.url||'')}&source=${encodeURIComponent(report.source)}`}
                     className="text-sm tracking-widest uppercase text-[#888888] hover:text-[#EDEDED]"
                   >
                     请求深潜分析 →
-                  </a>
+                  </Link>
                 </div>
 
                 {/* poolStats 已移除 — UI 简化，保留标题与情报文本 */}
