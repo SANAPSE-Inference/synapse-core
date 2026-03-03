@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function DeepAnalyzeView() {
+function AnalyzeContent() {
   const params = useSearchParams();
   const title = params?.get('title') || '';
   const url = params?.get('url') || '';
@@ -38,12 +39,22 @@ export default function DeepAnalyzeView() {
   }, [title]);
 
   return (
-    <div className="min-h-screen bg-[#121212] text-[#EDEDED] font-sans p-6 md:p-12 leading-relaxed">
+    <>
       <Link href="/" className="text-sm text-[#888] mb-4 inline-block">← 返回全局监控</Link>
       <h1 className="text-xl font-semibold mb-2 break-words">{title}</h1>
       {loading && <p className="text-[#888]">演算引擎运转中...</p>}
       {error && <p className="text-[#FF6B6B]">{error}</p>}
       <div className="prose max-w-none whitespace-pre-wrap text-[#EDEDED] font-mono">{display}</div>
+    </>
+  );
+}
+
+export default function DeepAnalyzeView() {
+  return (
+    <div className="min-h-screen bg-[#121212] text-[#EDEDED] font-sans p-6 md:p-12 leading-relaxed">
+      <Suspense fallback={<div>正在接通深潜管线...</div>}>
+        <AnalyzeContent />
+      </Suspense>
     </div>
   );
 }

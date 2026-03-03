@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from 'next/server';
 import Parser from 'rss-parser';
 
+export const dynamic = 'force-dynamic';
+
 // 强制每小时重新拉取一次，上游缓存控制
 export const revalidate = 3600;
 
