@@ -11,14 +11,16 @@ function AnalyzeContent() {
   const [display, setDisplay] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false); // 复制状态开关
 
   useEffect(() => {
     if (!title) return;
     setLoading(true);
     setError('');
     setDisplay('');
+    setCopied(false);
     
-    // 建立真实的流式接收管道
+    // 建立高阶流式接收管道 (带缓冲池，修复断流)
     const fetchStream = async () => {
       try {
         const res = await fetch(`/api/deep-analyze?title=${encodeURIComponent(title)}`);
@@ -29,27 +31,33 @@ function AnalyzeContent() {
         if (!reader) throw new Error('流媒体通道建立失败');
 
         let done = false;
+        let buffer = ''; // 缓冲池：专门接收断裂的数据包
+
         while (!done) {
           const { value, done: readerDone } = await reader.read();
           done = readerDone;
           if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            // 保留最后一行不完整的数据在缓冲池中
+            buffer = lines.pop() || ''; 
+
             for (const line of lines) {
-              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              const trimmedLine = line.trim();
+              if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
                 try {
-                  const data = JSON.parse(line.replace('data: ', ''));
+                  const data = JSON.parse(trimmedLine.replace('data: ', ''));
                   const content = data.choices[0]?.delta?.content || '';
                   setDisplay(prev => prev + content); // 逐字渲染
                 } catch (e) {
-                  // 忽略断流碎片
+                  // 静默处理，交给缓冲池在下一波数据中自动修复
                 }
               }
             }
           }
         }
       } catch (err) {
-        setError('演算中断：遭遇高维网络阻断');
+        setError('演算中断：遭遇高维网络阻断或超时');
       } finally {
         setLoading(false);
       }
@@ -58,12 +66,18 @@ function AnalyzeContent() {
     fetchStream();
   }, [title]);
 
+  // 物理剪贴板写入指令
+  const handleCopy = () => {
+    navigator.clipboard.writeText(display);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // 2秒后恢复原状
+  };
+
   return (
-    // 强制全局暗黑底色，彻底修复白屏刺眼 Bug
     <div className="min-h-screen bg-[#0a0a0a] text-white py-12 px-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto relative">
         <button
-          onClick={() => window.close()} // 改为关闭当前标签页
+          onClick={() => window.close()}
           className="text-sm tracking-widest text-[#888888] hover:text-[#EDEDED] mb-8 inline-block transition-colors"
         >
           [X] 关闭深潜终端
@@ -80,7 +94,22 @@ function AnalyzeContent() {
           )}
         </div>
 
-        <div className="bg-[#111111] border border-[#222222] p-6 md:p-10 rounded-lg min-h-[400px]">
+        <div className="bg-[#111111] border border-[#222222] p-6 md:p-10 rounded-lg min-h-[400px] relative">
+          
+          {/* 绝对定位的复制按钮：仅在加载完成且有内容时显示 */}
+          {!loading && display && (
+            <button
+              onClick={handleCopy}
+              className={`absolute top-4 right-4 md:top-6 md:right-6 text-[10px] tracking-widest uppercase border px-3 py-1.5 rounded transition-all backdrop-blur-sm z-10 ${
+                copied 
+                  ? 'border-green-500 text-green-500 bg-green-500/10' 
+                  : 'border-[#333] text-[#888] hover:text-white hover:border-white bg-[#111]/80'
+              }`}
+            >
+              {copied ? '已复制 (COPIED)' : '复制报告 (COPY)'}
+            </button>
+          )}
+
           {loading && !display && (
             <div className="text-[#888888] animate-pulse text-sm tracking-widest">
               正在接通 DeepSeek 流式算力通道...
