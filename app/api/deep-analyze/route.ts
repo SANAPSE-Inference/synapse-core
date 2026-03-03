@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge'; 
 export const dynamic = 'force-dynamic';
 
-// V3.0 铁血控制版 Prompt：封杀 Markdown 符号，强制五维输出
 const SYSTEM_PROMPT = `你是一个基于有限理性假设与非完全信息博弈论的战略演算引擎。
 【绝对排版禁令】：
 严禁使用任何 Markdown 符号（绝对不要出现 #, ##, ***, ** 等符号）。
@@ -47,8 +46,8 @@ export async function GET(request: Request) {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `请对以下情报进行降维分析，记住绝对禁止使用#或**等排版符号：${title}` }
         ],
-        temperature: 0.7, // 保持 0.7 兼顾逻辑与创造力
-        max_tokens: 2500,
+        temperature: 0.6, // 微调温度，提升输出速度与稳定性
+        max_tokens: 4096, // 核心防御：拉高 Token 墙，防止模型因字数限制自行腰斩
         stream: true
       })
     });

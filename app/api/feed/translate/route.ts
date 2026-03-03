@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// 改用稳定的 Node.js 运行时，防止边缘节点环境变量读取失败
+export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
           { role: 'system', content: '你是一个精准的金融与科技新闻破译引擎。请将英文原标题翻译成冷峻、专业的商业中文。只输出结果，不加引号或多余标点。' },
           { role: 'user', content: text }
         ],
-        temperature: 0.2, // 极限降低幻觉
+        temperature: 0.2, 
         max_tokens: 100
       })
     });
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ result: data.choices[0].message.content.trim() });
     
   } catch (error) {
+    console.error('Translate Error:', error);
     return NextResponse.json({ error: '破译网络断开' }, { status: 500 });
   }
 }
