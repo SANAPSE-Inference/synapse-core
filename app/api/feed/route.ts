@@ -4,14 +4,19 @@ import Parser from 'rss-parser';
 // 强制每小时重新拉取一次，上游缓存控制
 export const revalidate = 3600;
 
-const parser = new Parser();
+// 配置 User-Agent 伪装防止源站阻挡
+const parser = new Parser({
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+  }
+});
 
-// 七大核心领域分类与对应 RSS 源映射
+// 七大核心领域分类与对应 RSS 源映射（高稳定性链接）
 const CATEGORY_FEEDS: Record<string, Array<{ source: string; url: string }>> = {
   'all': [
     { source: 'HackerNews', url: 'https://hnrss.org/frontpage' },
-    { source: 'FierceBiotech', url: 'https://www.fiercebiotech.com/rss/xml' },
-    { source: 'ReutersBusiness', url: 'http://feeds.reuters.com/reuters/businessNews' },
+    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' },
+    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' },
     { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' },
     { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
   ],
@@ -20,20 +25,20 @@ const CATEGORY_FEEDS: Record<string, Array<{ source: string; url: string }>> = {
     { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' }
   ],
   'finance': [
-    { source: 'ReutersBusiness', url: 'http://feeds.reuters.com/reuters/businessNews' },
+    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' },
     { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
   ],
   'geopolitics': [
-    { source: 'ReutersBusiness', url: 'http://feeds.reuters.com/reuters/businessNews' }
+    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' }
   ],
   'china': [
-    { source: 'HuanqiuTimes', url: 'https://world.huanqiu.com/rss.xml' }
+    { source: 'ZaoBao', url: 'https://www.zaobao.com.sg/rss/realtime/china' }
   ],
   'industry': [
     { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' }
   ],
   'biotech': [
-    { source: 'FierceBiotech', url: 'https://www.fiercebiotech.com/rss/xml' }
+    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' }
   ],
   'web3': [
     { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }

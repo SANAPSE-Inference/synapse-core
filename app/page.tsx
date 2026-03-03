@@ -244,21 +244,10 @@ export default function SynapseDarkPool() {
         ) : (
           <div className="space-y-12">
             {reports.map((report, index) => (
-              <div key={index} className="bg-[#1A1A1A] p-8 md:p-10 rounded-lg mb-6">
+              <div key={index} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
                 <div className="mb-6">
                   <a href={report.url || '#'} target="_blank" rel="noreferrer" className="inline-block px-2 py-1 text-[#A0A0A0] text-[10px] uppercase tracking-widest mb-3">数据来源：{report.source}</a>
                   <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">{report.headline}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div>
-                    <h3 className="text-[10px] text-[#A0A0A0] uppercase tracking-widest mb-2">Secondary Butterfly Effect</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">{report.butterfly_effect}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-[10px] text-[#A0A0A0] uppercase tracking-widest mb-2">Arbitrage Action (Win Rate: {report.win_rate}%)</h3>
-                    <p className="text-sm text-gray-300 font-medium leading-relaxed">{report.arbitrage_action}</p>
-                  </div>
                 </div>
 
                 <div className="border-t border-[#222] pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
