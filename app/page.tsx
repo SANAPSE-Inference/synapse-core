@@ -6,9 +6,6 @@ interface Report {
   headline: string;
   source: string;
   url?: string;
-  butterfly_effect?: string;
-  arbitrage_action?: string;
-  win_rate?: number;
 }
 
 // 建立与云端暗池的物理连接

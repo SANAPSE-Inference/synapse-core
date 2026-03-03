@@ -11,37 +11,49 @@ const parser = new Parser({
   }
 });
 
-// 七大核心领域分类与对应 RSS 源映射（高稳定性链接）
+// 七大核心领域分类与对应 RSS 源映射（每类 2-3 个顶级信源）
 const CATEGORY_FEEDS: Record<string, Array<{ source: string; url: string }>> = {
   'all': [
-    { source: 'HackerNews', url: 'https://hnrss.org/frontpage' },
-    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' },
+    // 采用各分类的主流来源混合，为 "全部" 附加额外源
     { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' },
+    { source: 'AlJazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+    { source: 'Reuters', url: 'http://feeds.reuters.com/Reuters/worldNews' },
+    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' },
     { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' },
     { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
   ],
   'ai': [
     { source: 'HackerNews', url: 'https://hnrss.org/frontpage' },
-    { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' }
+    { source: 'TechCrunch', url: 'http://feeds.feedburner.com/TechCrunch/' },
+    { source: 'MITTechReview', url: 'https://www.technologyreview.com/feed/' }
   ],
   'finance': [
-    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' },
-    { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
+    { source: 'FTChinese', url: 'https://www.ftchinese.com/rss/news' },
+    { source: 'SCMP', url: 'https://www.scmp.com/rss/2/feed' },
+    { source: 'WSJChina', url: 'https://www.wsj.com/xml/rss/3_7031.xml' }
   ],
   'geopolitics': [
-    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' }
+    { source: 'BBC', url: 'http://feeds.bbci.co.uk/news/world/rss.xml' },
+    { source: 'AlJazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+    { source: 'Reuters', url: 'http://feeds.reuters.com/Reuters/worldNews' }
   ],
   'china': [
+    { source: 'FTChinese', url: 'https://www.ftchinese.com/rss/news' },
+    { source: 'SCMP', url: 'https://www.scmp.com/rss/2/feed' },
     { source: 'ZaoBao', url: 'https://www.zaobao.com.sg/rss/realtime/china' }
   ],
   'industry': [
     { source: 'IEEESpectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' }
   ],
   'biotech': [
-    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' }
+    { source: 'Nature', url: 'https://feeds.nature.com/nature/rss/current' },
+    { source: 'FierceBiotech', url: 'https://www.fiercebiotech.com/rss/xml' },
+    { source: 'ScienceDaily', url: 'https://www.sciencedaily.com/rss/biology/biotechnology.xml' }
   ],
   'web3': [
-    { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' }
+    { source: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
+    { source: 'Cointelegraph', url: 'https://cointelegraph.com/rss' },
+    { source: 'Decrypt', url: 'https://decrypt.co/feed' }
   ]
 };
 
@@ -79,7 +91,9 @@ export async function GET(request: NextRequest) {
       return db - da;
     });
 
-    const output = merged.map(({ headline, source, url }) => ({
+    // 只保留最新的前 15 条
+    const trimmed = merged.slice(0, 15);
+    const output = trimmed.map(({ headline, source, url }) => ({
       headline,
       source,
       url
