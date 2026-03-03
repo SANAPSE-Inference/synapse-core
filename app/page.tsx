@@ -43,88 +43,11 @@ export default function SynapseDarkPool() {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   // 私钥/访问控制 (已精简为匿名节点，无需用户输入 Access Key)
 
-  // DEEP_INTEL 状态（按索引）
-  const [intelLoading, setIntelLoading] = useState<Record<number, boolean>>({});
-  const [intelText, setIntelText] = useState<Record<number, string>>({});
-  const [intelSaved, setIntelSaved] = useState<Record<number, boolean>>({});
-  const [intelAnalysis, setIntelAnalysis] = useState<Record<number, string>>({});
-  const [savingIntel, setSavingIntel] = useState<Record<number, boolean>>({});
-  const [intelError, setIntelError] = useState<Record<number, string>>({});
+
 
   // 已移除 poolStats 聚合逻辑 — UI 简化为情报提取为主
 
-  // DEEP_INTEL 请求与显示
-  const fetchDeepIntel = async (headline: string, idx: number) => {
-    setIntelLoading(s => ({ ...s, [idx]: true }));
-    setIntelText(s => ({ ...s, [idx]: '正在提取跨域融合情报...' }));
-    try {
-      const res = await fetch('/api/intel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ headline }) });
-      if (!res.ok) throw new Error('intel request failed');
-      const j = await res.json();
-      const intel = j.text || j.intel || '无情报';
-      const lines = intel.split('\n').slice(0, 3);
-      const formattedIntel = lines.join('\n');
 
-      // 打字机效果
-      setIntelText(s => ({ ...s, [idx]: '' }));
-      setIntelAnalysis(s => ({ ...s, [idx]: formattedIntel }));
-      let i = 0;
-      const speed = 24;
-      const timer = setInterval(() => {
-        i++;
-        setIntelText(prev => ({ ...prev, [idx]: formattedIntel.slice(0, i) }));
-        if (i >= formattedIntel.length) clearInterval(timer);
-      }, speed);
-
-      // 写活动日志与终端（节点提取情报）
-      const time = new Date().toLocaleTimeString();
-      const line = `${time} > NODE ${nodeId || 'ANON'} EXTRACTED FUSION INTEL FOR: "${headline}"`;
-      setActivityLogs(prev => [line, ...prev].slice(0, 10));
-      const terminalLine = `[INTEL] ${nodeId || 'ANON'} | ${headline} | ${time}`;
-      setTerminalLines(prev => [...prev, terminalLine].slice(-50));
-    } catch (e) {
-      console.error('Deep Intel failed', e);
-      setIntelText(s => ({ ...s, [idx]: '机密提取失败' }));
-    } finally {
-      setIntelLoading(s => ({ ...s, [idx]: false }));
-    }
-  };
-
-  // 保存分析结果到智库档案
-  const saveIntelToArchive = async (headline: string, analysis: string, idx: number) => {
-    setSavingIntel(s => ({ ...s, [idx]: true }));
-    setIntelError(s => ({ ...s, [idx]: '' }));
-    try {
-      const res = await fetch('/api/save-intel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: headline,
-          source_url: '',
-          analysis
-        })
-      });
-      
-      if (res.ok) {
-        setIntelSaved(s => ({ ...s, [idx]: true }));
-        setIntelError(s => ({ ...s, [idx]: '' }));
-        const time = new Date().toLocaleTimeString();
-        const line = `${time} > NODE ${nodeId || 'ANON'} ARCHIVED INTEL FOR: "${headline}"`;
-        setActivityLogs(prev => [line, ...prev].slice(0, 10));
-      } else {
-        const errData = await res.json();
-        const errMsg = errData.error || '存档失败，请重试';
-        setIntelError(s => ({ ...s, [idx]: errMsg }));
-        console.error('Save failed:', errMsg);
-      }
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : '网络链接异常';
-      setIntelError(s => ({ ...s, [idx]: errMsg }));
-      console.error('Archive failed', e);
-    } finally {
-      setSavingIntel(s => ({ ...s, [idx]: false }));
-    }
-  };
 
   // 页面加载：初始化节点（localStorage 优先，强制 prompt）并订阅实时
   useEffect(() => {
@@ -247,48 +170,13 @@ export default function SynapseDarkPool() {
                   <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">{report.headline}</h2>
                 </div>
 
-                <div className="border-t border-[#222] pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                  <span className="text-xs text-gray-500 uppercase tracking-widest">请求跨域融合分析</span>
-                  <div className="w-full md:w-auto mb-2 md:mb-0">
-                    {intelText[index] && (
-                      <div className="mb-2 text-sm bg-[#1A1A1A] text-[#8AB4F8] font-sans p-4 rounded whitespace-pre-wrap border-l-2 border-[#8AB4F8]">{intelText[index]}</div>
-                    )}
-                    <div className="flex flex-col w-full md:w-auto gap-2">
-                      <button onClick={() => fetchDeepIntel(report.headline, index)} disabled={!!intelLoading[index]} className="mb-2 px-4 py-2 text-sm tracking-widest uppercase bg-[#333333] text-[#EDEDED] font-semibold border border-[#444] hover:bg-[#444] disabled:opacity-50">
-                        {intelLoading[index] ? '正在提取...' : '请求跨域融合分析'}
-                      </button>
-                      {intelAnalysis[index] && (
-                        <>
-                          <button 
-                            onClick={() => saveIntelToArchive(report.headline, intelAnalysis[index], index)} 
-                            disabled={intelSaved[index] || savingIntel[index]}
-                            className={`px-4 py-2 text-sm tracking-widest uppercase font-semibold border flex items-center gap-2 justify-center transition-all ${
-                              intelSaved[index] 
-                                ? 'bg-[#2A3A2A] text-[#90EE90] border-[#4A6A4A] opacity-50' 
-                                : 'bg-[#333333] text-[#EDEDED] border-[#444] hover:bg-[#444] disabled:opacity-50'
-                            }`}
-                          >
-                            {savingIntel[index] ? (
-                              <>
-                                <span className="inline-block w-4 h-4 border-2 border-[#EDEDED] border-t-transparent rounded-full animate-spin"></span>
-                                <span>正在刻录...</span>
-                              </>
-                            ) : intelSaved[index] ? (
-                              <>
-                                <span className="text-[#90EE90]">✓</span>
-                                <span>已永久存档</span>
-                              </>
-                            ) : (
-                              <span>存入智库档案</span>
-                            )}
-                          </button>
-                          {intelError[index] && (
-                            <div className="text-[10px] text-[#FF6B6B]">⚠ {intelError[index]}</div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
+                <div className="border-t border-[#222] pt-6">
+                  <a
+                    href={`/analyze?title=${encodeURIComponent(report.headline)}&url=${encodeURIComponent(report.url||'')}&source=${encodeURIComponent(report.source)}`}
+                    className="text-sm tracking-widest uppercase text-[#888888] hover:text-[#EDEDED]"
+                  >
+                    请求深潜分析 →
+                  </a>
                 </div>
 
                 {/* poolStats 已移除 — UI 简化，保留标题与情报文本 */}
