@@ -164,8 +164,8 @@ export default function SynapseDarkPool() {
           </div>
         ) : (
           <div className="space-y-12">
-            {reports.map((report) => (
-              <div key={report.url || report.headline} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
+            {reports.map((report, index) => (
+              <div key={report.url || report.headline || index} className="bg-[#111111] p-8 md:p-10 rounded-lg mb-6 border border-[#222222]">
                 <div className="mb-6">
                   <a href={report.url || '#'} target="_blank" rel="noreferrer" className="inline-block px-2 py-1 text-[#A0A0A0] text-[10px] uppercase tracking-widest mb-3">数据来源：{report.source}</a>
                   <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] leading-relaxed">{report.headline}</h2>

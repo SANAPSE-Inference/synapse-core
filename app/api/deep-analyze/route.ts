@@ -3,7 +3,7 @@ import { NextResponse, NextRequest } from 'next/server';
 // 不缓存，深度演算每次都重新请求
 export const revalidate = 0;
 
-const SYSTEM_PROMPT = `你是一个基于博弈论的战略演算引擎。强制输出不超过 500 字的分析。必须使用这四个 Markdown 标题：【事实去噪】、【博弈链路推演】、【大众认知偏差】、【非对称套利锚点】。拒绝任何免责声明与废话。`;}
+const SYSTEM_PROMPT = `你是一个基于博弈论的战略演算引擎。强制输出不超过 500 字的分析。必须使用这四个 Markdown 标题：【事实去噪】、【博弈链路推演】、【大众认知偏差】、【非对称套利锚点】。拒绝任何免责声明与废话。`;
 
 export async function GET(request: NextRequest) {
   const title = request.nextUrl.searchParams.get('title') || '';
