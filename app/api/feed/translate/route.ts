@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// 改用稳定的 Node.js 运行时，防止边缘节点环境变量读取失败
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,19 +18,22 @@ export async function GET(request: Request) {
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: '你是一个精准的金融与科技新闻破译引擎。请将英文原标题翻译成冷峻、专业的商业中文。只输出结果，不加引号或多余标点。' },
+          { role: 'system', content: 'Translate to professional Chinese. Output result only.' },
           { role: 'user', content: text }
         ],
-        temperature: 0.2, 
-        max_tokens: 100
+        temperature: 0.1, // 极限收敛，禁止模型发散思考，换取最高响应速度
+        max_tokens: 60
       })
     });
+
+    if (!response.ok) {
+        throw new Error(`API Refused: ${response.status}`);
+    }
 
     const data = await response.json();
     return NextResponse.json({ result: data.choices[0].message.content.trim() });
     
-  } catch (error) {
-    console.error('Translate Error:', error);
-    return NextResponse.json({ error: '破译网络断开' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: `破译失败: ${error.message}` }, { status: 500 });
   }
 }
