@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
 
-// 启用边缘计算节点，彻底突破 10 秒超时限制
 export const runtime = 'edge'; 
 export const dynamic = 'force-dynamic';
 
-const SYSTEM_PROMPT = `你是一个基于有限理性假设与非完全信息博弈论的战略演算引擎。请输出约 1500 字的深度结构化分析。必须严格使用以下五个 Markdown 标题：
-【事实去噪】（一句话剥离情绪修辞，还原物理事实）
-【第一性原理与事件本质】（核心重头戏：用不少于 800 字的篇幅，极度深挖该事件在商业逻辑、技术迭代或地缘政治上的底层原理、历史坐标以及未来 3-5 年的价值延展）
-【博弈链路推演】（分析零和/非零和博弈中的利益受损方与受益方）
-【大众认知偏差】（指出大众面对此新闻时容易产生的直觉谬误）
-【非对称套利锚点】（给出反共识的资本或资源杠杆操作建议）`;
+// V3.0 铁血控制版 Prompt：封杀 Markdown 符号，强制五维输出
+const SYSTEM_PROMPT = `你是一个基于有限理性假设与非完全信息博弈论的战略演算引擎。
+【绝对排版禁令】：
+严禁使用任何 Markdown 符号（绝对不要出现 #, ##, ***, ** 等符号）。
+只能使用换行符和中文全角括号【】来区分标题。
+正文必须纯文本输出，不要加粗。
+
+【强制结构指令】：
+你必须且只能严格按照以下 5 个模块的顺序输出，绝对不能遗漏任何一个模块，绝对不要自己合并模块：
+
+【事实去噪】
+（用一两句话剥离媒体的情绪修辞，还原冰冷的物理事实）
+
+【第一性原理与事件本质】
+（用极其深度的篇幅，深挖该事件在商业逻辑、技术迭代或地缘政治上的底层原理、历史坐标以及未来 3-5 年的价值延展）
+
+【博弈链路推演】
+（分析零和/非零和博弈中，到底谁是利益受损方，谁是隐蔽的受益方）
+
+【大众认知偏差】
+（一针见血地指出，普通大众或散户面对此新闻时，最容易产生的直觉谬误或冲动反应）
+
+【非对称套利锚点】
+（给出极具反共识的资本、资源分配或风险对冲的具体操作建议）`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,15 +45,14 @@ export async function GET(request: Request) {
         model: 'deepseek-chat',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `请对以下情报进行降维分析：${title}` }
+          { role: 'user', content: `请对以下情报进行降维分析，记住绝对禁止使用#或**等排版符号：${title}` }
         ],
-        temperature: 0.7,
+        temperature: 0.7, // 保持 0.7 兼顾逻辑与创造力
         max_tokens: 2500,
-        stream: true // 开启物理级实时流传输
+        stream: true
       })
     });
 
-    // 将大模型的原始数据流直接连接到客户端
     return new Response(response.body, {
       headers: {
         'Content-Type': 'text/event-stream; charset=utf-8',
