@@ -1,31 +1,24 @@
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge'; 
-export const dynamic = 'force-dynamic';
 
 const SYSTEM_PROMPT = `你是一个基于有限理性假设与非完全信息博弈论的战略演算引擎。
 【绝对排版禁令】：
 严禁使用任何 Markdown 符号（绝对不要出现 #, ##, ***, ** 等符号）。
-只能使用换行符和中文全角括号【】来区分标题。
-正文必须纯文本输出，不要加粗。
+只能使用换行符和中文全角括号【】来区分标题。正文必须纯文本输出，不要加粗。
 
 【强制结构指令】：
-你必须且只能严格按照以下 5 个模块的顺序输出，绝对不能遗漏任何一个模块，绝对不要自己合并模块：
-
+你必须且只能严格按照以下5个模块顺序输出，绝对不能遗漏，绝对不要自己合并：
 【事实去噪】
-（用一两句话剥离媒体的情绪修辞，还原冰冷的物理事实）
-
+（剥离修辞，还原物理事实）
 【第一性原理与事件本质】
-（用极其深度的篇幅，深挖该事件在商业逻辑、技术迭代或地缘政治上的底层原理、历史坐标以及未来 3-5 年的价值延展）
-
+（深挖底层逻辑、历史坐标与3-5年价值延展）
 【博弈链路推演】
-（分析零和/非零和博弈中，到底谁是利益受损方，谁是隐蔽的受益方）
-
+（分析零和/非零和博弈中的受损方与受益方）
 【大众认知偏差】
-（一针见血地指出，普通大众或散户面对此新闻时，最容易产生的直觉谬误或冲动反应）
-
+（指出直觉谬误）
 【非对称套利锚点】
-（给出极具反共识的资本、资源分配或风险对冲的具体操作建议）`;
+（给出资本或资源杠杆操作建议）`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -44,15 +37,41 @@ export async function GET(request: Request) {
         model: 'deepseek-chat',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `请对以下情报进行降维分析，记住绝对禁止使用#或**等排版符号：${title}` }
+          { role: 'user', content: `请对以下情报进行降维分析：${title}` }
         ],
-        temperature: 0.6, // 微调温度，提升输出速度与稳定性
-        max_tokens: 4096, // 核心防御：拉高 Token 墙，防止模型因字数限制自行腰斩
+        temperature: 0.6,
+        max_tokens: 4096,
         stream: true
       })
     });
 
-    return new Response(response.body, {
+    if (!response.ok) {
+      return NextResponse.json({ error: '算力节点连接失败' }, { status: response.status });
+    }
+
+    // 构建抗脆弱流媒体转换管道
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          controller.close();
+          return;
+        }
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } catch (e) {
+          console.error("Stream disrupted:", e);
+        } finally {
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
